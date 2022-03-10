@@ -1,8 +1,10 @@
 local utils = require("neo-tree.utils")
 
-local M = {}
+local M = {
+  NONE = "NONE"
+}
 
--- for lists, first value is the default value
+-- For lists, the first value is the default value. "NONE" implies no default value.
 local valid_args = {
   action = {
     "focus",
@@ -11,6 +13,7 @@ local valid_args = {
     "reveal"
   },
   position = {
+    M.NONE,
     "left",
     "right",
     "top",
@@ -27,34 +30,45 @@ local valid_args = {
     "buffers",
     "git_status",
   },
-  dir = ".",
-  reveal_file = "%:p",
+  dir = M.NONE,
+  reveal_file = M.NONE,
 }
 
 local reverse_lookup = {}
 for k, v in pairs(valid_args) do
   if type(v) == "table" then
     for _, vv in ipairs(v) do
-      reverse_lookup[vv] = k
+      if vv ~= M.NONE then
+        reverse_lookup[vv] = k
+      end
     end
   else
-    reverse_lookup[v] = k
+    if v ~= M.NONE then
+      reverse_lookup[v] = k
+    end
   end
 end
+
+M.valid_args = valid_args
+M.reverse_lookup = reverse_lookup
 
 M.parse = function(...)
   local args = {}
   -- assign defaults
   for key, value in pairs(valid_args) do
     if type(value) == "table" then
-      args[key] = value[1]
+      if value[1] ~= M.NONE then
+        args[key] = value[1]
+      end
     else
-      args[key] = value
+      if value ~= M.NONE then
+        args[key] = value
+      end
     end
   end
 
   -- read args from user
-  for _, arg in ipairs(...) do
+  for _, arg in ipairs({...}) do
     if type(arg) == "string" then
       local eq = arg:find("=")
       if eq then

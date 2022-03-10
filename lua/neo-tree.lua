@@ -451,8 +451,9 @@ M.win_enter_event = function()
   end
 end
 
---TODO: Remove the do_not_focus and close_others options in 2.0
-M.show = function(source_name, do_not_focus, close_others, toggle_if_open)
+--BREAKING CHANGE: Removed the do_not_focus and close_others options in 2.0
+--M.show = function(source_name, do_not_focus, close_others, toggle_if_open)
+M.show = function(source_name, toggle_if_open)
   source_name = check_source(source_name)
   if get_position(source_name) == "split" then
     M.show_in_split(source_name, toggle_if_open)
