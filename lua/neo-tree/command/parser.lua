@@ -39,12 +39,12 @@ for k, v in pairs(valid_args) do
   if type(v) == "table" then
     for _, vv in ipairs(v) do
       if vv ~= M.NONE then
-        reverse_lookup[vv] = k
+        reverse_lookup[tostring(vv)] = k
       end
     end
   else
     if v ~= M.NONE then
-      reverse_lookup[v] = k
+      reverse_lookup[tostring(v)] = k
     end
   end
 end
@@ -78,14 +78,24 @@ M.parse = function(...)
           error("Invalid argument: " .. arg)
         end
         args[key] = value
+      else
+        local value = arg
+        local key = reverse_lookup[value]
+        if not key then
+          -- maybe it's a path
+          local stat = vim.loop.fs_stat(value)
+          if stat then
+            if stat.type == "directory" then
+              key = "dir"
+            elseif stat.type == "file" then
+              key = "reveal_file"
+            end
+          else
+            error("Invalid argument: " .. arg)
+          end
+        end
+        args[key] = value
       end
-    else
-      local value = arg
-      local key = reverse_lookup[value]
-      if not key then
-        error("Invalid argument: " .. value)
-      end
-      args[key] = value
     end
   end
 
