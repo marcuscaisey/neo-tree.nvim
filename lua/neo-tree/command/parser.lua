@@ -77,12 +77,16 @@ M.parse = function(...)
         if not valid_args[key] then
           error("Invalid argument: " .. arg)
         end
+        if key == "dir" or key == "reveal_file" then
+          value = vim.fn.expand(value)
+        end
         args[key] = value
       else
         local value = arg
         local key = reverse_lookup[value]
         if not key then
           -- maybe it's a path
+          value = vim.fn.expand(value)
           local stat = vim.loop.fs_stat(value)
           if stat then
             if stat.type == "directory" then
