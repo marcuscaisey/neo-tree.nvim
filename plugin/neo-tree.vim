@@ -22,4 +22,4 @@ command!          NeoTreePasteConfig   lua require("neo-tree").paste_default_con
 command! -nargs=? NeoTreeSetLogLevel   lua require("neo-tree").set_log_level("<args>")
 command!          NeoTreeLogs          lua require("neo-tree").show_logs()
 
-command! -nargs=* -complete=custom,v:lua.require'neo-tree.command'.complete_args Neotree lua require("neo-tree.command").execute(<f-args>)
+command! -nargs=* -complete=custom,v:lua.require'neo-tree.command'.complete_args Neotree lua require("neo-tree.command").command(<f-args>)

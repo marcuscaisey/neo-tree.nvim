@@ -162,7 +162,9 @@ local hijack_netrw = function()
   return true
 end
 
+--DEPRECATED in v2.x
 M.close_all_except = function(source_name)
+  -- this entire function is faulty now that position can be overriden at runtime
   source_name = check_source(source_name)
   local target_pos = get_position(source_name)
   for _, name in ipairs(sources) do
@@ -176,8 +178,10 @@ M.close_all_except = function(source_name)
   renderer.close_all_floating_windows()
 end
 
+--DEPRECATED in v2.x
 M.close = manager.close
 
+--DEPRECATED in v2.x, use manager.close_all()
 M.close_all = function(at_position)
   renderer.close_all_floating_windows()
   if type(at_position) == "string" and at_position > "" then
@@ -194,6 +198,7 @@ M.close_all = function(at_position)
   end
 end
 
+--DEPRECATED in v2.x, use commands.execute()
 M.float = function(source_name, toggle_if_open)
   source_name = check_source(source_name)
   if toggle_if_open then
@@ -207,7 +212,7 @@ M.float = function(source_name, toggle_if_open)
   manager.float(source_name)
 end
 
---TODO: Remove the close_others option in 2.0
+--DEPRECATED in v2.x, use commands.execute()
 M.focus = function(source_name, close_others, toggle_if_open)
   source_name = check_source(source_name)
   if get_position(source_name) == "split" then
@@ -230,6 +235,7 @@ M.focus = function(source_name, close_others, toggle_if_open)
   manager.focus(source_name)
 end
 
+--DEPRECATED in v2.x, use commands.execute()
 M.reveal_current_file = function(source_name, toggle_if_open, force_cwd)
   source_name = check_source(source_name)
   if get_position(source_name) == "split" then
@@ -245,6 +251,7 @@ M.reveal_current_file = function(source_name, toggle_if_open, force_cwd)
   manager.reveal_current_file(source_name, nil, force_cwd)
 end
 
+--DEPRECATED in v2.x, use commands.execute()
 M.reveal_in_split = function(source_name, toggle_if_open)
   source_name = check_source(source_name)
   if toggle_if_open then
@@ -258,6 +265,7 @@ M.reveal_in_split = function(source_name, toggle_if_open)
   manager.reveal_in_split(source_name)
 end
 
+--DEPRECATED in v2.x, use commands.execute()
 M.show_in_split = function(source_name, toggle_if_open)
   source_name = check_source(source_name)
   if toggle_if_open then
@@ -451,6 +459,7 @@ M.win_enter_event = function()
   end
 end
 
+--DEPRECATED in v2.x
 --BREAKING CHANGE: Removed the do_not_focus and close_others options in 2.0
 --M.show = function(source_name, do_not_focus, close_others, toggle_if_open)
 M.show = function(source_name, toggle_if_open)

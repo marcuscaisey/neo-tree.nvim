@@ -1,7 +1,6 @@
 local utils = require("neo-tree.utils")
 
 local M = {
-  NO_DEFAULT = "<NO_DEFAULT>",
   FLAG = "<FLAG>",
   LIST = "<LIST>",
   PATH = "<PATH>",
@@ -12,19 +11,18 @@ local arguments = {
   action = {
     type = M.LIST,
     values = {
+      "close",
       "focus",
       "show",
-      "close",
     },
   },
   position = {
     type = M.LIST,
     values = {
-      M.NO_DEFAULT,
       "left",
       "right",
-      "top",
-      "bottom",
+      --"top", --technically valid, but why show it if no one will use it?
+      --"bottom", --technically valid, but why show it if no one will use it?
       "float",
       "split"
     }
@@ -53,9 +51,7 @@ for name, def in pairs(arguments) do
   if def.type == M.LIST then
     table.insert(list_args, name)
     for _, vv in ipairs(def.values) do
-      if vv ~= M.NO_DEFAULT then
-        reverse_lookup[tostring(vv)] = name
-      end
+      reverse_lookup[tostring(vv)] = name
     end
   elseif def.type == M.PATH then
     table.insert(path_args, name)
@@ -74,6 +70,18 @@ M.flag_args = flag_args
 M.arg_type_lookup = arg_type_lookup
 M.reverse_lookup = reverse_lookup
 
+M.resolve_path = function(path, validate_type)
+  local expanded = vim.fn.expand(path)
+  local abs_path = vim.fn.fnamemodify(expanded, ":p")
+  if validate_type then
+    local stat = vim.loop.fs_stat(abs_path)
+    if stat.type ~= validate_type then
+      error("Invalid path: " .. path .. " is not a " .. validate_type)
+    end
+  end
+  return abs_path
+end
+
 local parse_arg = function(result, arg)
   if type(arg) == "string" then
     local eq = arg:find("=")
@@ -86,13 +94,7 @@ local parse_arg = function(result, arg)
       end
 
       if def.type == M.PATH then
-        local path = vim.fn.fnamemodify(value, ":p")
-        local stat = vim.loop.fs_stat(path)
-        if stat.type == def.stat_type then
-          result[key] = path
-        else
-          error("Invalid argument for " .. key .. ": " .. value .. " is not a " .. def.stat_type)
-        end
+        result[key] = M.resolve_path(value, def.stat_type)
       elseif def.type == M.FLAG then
         if value == "true" then
           result[key] = true
@@ -109,7 +111,7 @@ local parse_arg = function(result, arg)
       local key = reverse_lookup[value]
       if key == nil then
         -- maybe it's a path
-        local path = vim.fn.fnamemodify(value, ":p")
+        local path = M.resolve_path(value)
         local stat = vim.loop.fs_stat(path)
         if stat then
           if stat.type == "directory" then
@@ -129,17 +131,12 @@ local parse_arg = function(result, arg)
   end
 end
 
-M.parse = function(args, include_defaults, strict_checking)
+M.parse = function(args, strict_checking)
   local result = {}
-  if include_defaults then
-    for _, key in ipairs(list_args) do
-      local def = arguments[key]
-      if def.values[1] ~= M.NO_DEFAULT then
-        result[key] = def.values[1]
-      end
-    end
-  end
 
+  if type(args) == "string" then
+    args = utils.split(args, " ")
+  end
   -- read args from user
   for _, arg in ipairs(args) do
     local success, err = pcall(parse_arg, result, arg)
