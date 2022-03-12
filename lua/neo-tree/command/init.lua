@@ -88,6 +88,17 @@ M.execute = function (...)
   local args = parser.parse({...}, true, true)
   local nt = require("neo-tree")
 
+  -- handle close action, which can specify a source or position
+  -- default would be close all windows of your default source
+  if args.action == "close" then
+    if args.position then
+      nt.close_all(args.position)
+    else
+      nt.close(args.source)
+    end
+    return
+  end
+
   -- First handle toggle, the rest is irrelevant if we need to toggle
   if args.toggle then
     if manager.close(args.source) then
@@ -128,15 +139,16 @@ M.execute = function (...)
   end
 
   -- All set, now show or focus the window
+  local force_navigate = path_changed or do_reveal or state.dirty
   if args.action == "show" then
-    if path_changed or do_reveal or not renderer.window_exists(state) then
+    if force_navigate or not renderer.window_exists(state) then
       local current_win = vim.api.nvim_get_current_win()
       manager.navigate(state, state.path, args.reveal_file, function()
         vim.api.nvim_set_current_win(current_win)
       end)
     end
   elseif args.action == "focus" then
-    if not path_changed or not do_reveal and not state.dirty and renderer.window_exists(state) then
+    if renderer.window_exists(state) and not force_navigate then
       vim.api.nvim_set_current_win(state.winid)
     else
       manager.navigate(state, state.path, args.reveal_file)

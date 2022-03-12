@@ -14,6 +14,7 @@ local arguments = {
     values = {
       "focus",
       "show",
+      "close",
     },
   },
   position = {
