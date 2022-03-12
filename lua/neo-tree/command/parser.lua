@@ -1,109 +1,153 @@
 local utils = require("neo-tree.utils")
 
 local M = {
-  NONE = "NONE"
+  NO_DEFAULT = "<NO_DEFAULT>",
+  FLAG = "<FLAG>",
+  LIST = "<LIST>",
+  PATH = "<PATH>",
 }
 
--- For lists, the first value is the default value. "NONE" implies no default value.
-local valid_args = {
+-- For lists, the first value is the default value.
+local arguments = {
   action = {
-    "focus",
-    "show",
-    "hide",
-    "reveal"
+    type = M.LIST,
+    values = {
+      "focus",
+      "show",
+    },
   },
   position = {
-    M.NONE,
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "float",
-    "split"
-  },
-  toggle = {
-    true,
-    false,
+    type = M.LIST,
+    values = {
+      M.NO_DEFAULT,
+      "left",
+      "right",
+      "top",
+      "bottom",
+      "float",
+      "split"
+    }
   },
   source = {
-    "filesystem",
-    "buffers",
-    "git_status",
+    type = M.LIST,
+    values = {
+      "filesystem",
+      "buffers",
+      "git_status",
+    }
   },
-  dir = M.NONE,
-  reveal_file = M.NONE,
+  dir = { type = M.PATH, stat_type = "directory" },
+  reveal_file = { type = M.PATH, stat_type = "file" },
+  toggle = { type = M.FLAG },
+  reveal = { type = M.FLAG },
 }
 
+local arg_type_lookup = {}
+local list_args = {}
+local path_args = {}
+local flag_args = {}
 local reverse_lookup = {}
-for k, v in pairs(valid_args) do
-  if type(v) == "table" then
-    for _, vv in ipairs(v) do
-      if vv ~= M.NONE then
-        reverse_lookup[tostring(vv)] = k
+for name, def in pairs(arguments) do
+  arg_type_lookup[name] = def.type
+  if def.type == M.LIST then
+    table.insert(list_args, name)
+    for _, vv in ipairs(def.values) do
+      if vv ~= M.NO_DEFAULT then
+        reverse_lookup[tostring(vv)] = name
       end
     end
+  elseif def.type == M.PATH then
+    table.insert(path_args, name)
+  elseif def.type == M.FLAG then
+    table.insert(flag_args, name)
+    reverse_lookup[name] = M.FLAG
   else
-    if v ~= M.NONE then
-      reverse_lookup[tostring(v)] = k
+    error("Unknown type: " .. def.type)
+  end
+end
+
+M.arguments = arguments
+M.list_args = list_args
+M.path_args = path_args
+M.flag_args = flag_args
+M.arg_type_lookup = arg_type_lookup
+M.reverse_lookup = reverse_lookup
+
+local parse_arg = function(result, arg)
+  if type(arg) == "string" then
+    local eq = arg:find("=")
+    if eq then
+      local key = arg:sub(1, eq - 1)
+      local value = arg:sub(eq + 1)
+      local def = arguments[key]
+      if not def.type then
+        error("Invalid argument: " .. arg)
+      end
+
+      if def.type == M.PATH then
+        local path = vim.fn.fnamemodify(value, ":p")
+        local stat = vim.loop.fs_stat(path)
+        if stat.type == def.stat_type then
+          result[key] = path
+        else
+          error("Invalid argument for " .. key .. ": " .. value .. " is not a " .. def.stat_type)
+        end
+      elseif def.type == M.FLAG then
+        if value == "true" then
+          result[key] = true
+        elseif value == "false" then
+          result[key] = false
+        else
+          error("Invalid value for " .. key .. ": " .. value)
+        end
+      else
+        result[key] = value
+      end
+    else
+      local value = arg
+      local key = reverse_lookup[value]
+      if key == nil then
+        -- maybe it's a path
+        local path = vim.fn.fnamemodify(value, ":p")
+        local stat = vim.loop.fs_stat(path)
+        if stat then
+          if stat.type == "directory" then
+            result["dir"] = path
+          elseif stat.type == "file" then
+            result["reveal_file"] = path
+          end
+        else
+          error("Invalid argument: " .. arg)
+        end
+      elseif key == M.FLAG then
+        result[value] = true
+      else
+        result[key] = value
+      end
     end
   end
 end
 
-M.valid_args = valid_args
-M.reverse_lookup = reverse_lookup
-
-M.parse = function(...)
-  local args = {}
-  -- assign defaults
-  for key, value in pairs(valid_args) do
-    if type(value) == "table" then
-      if value[1] ~= M.NONE then
-        args[key] = value[1]
-      end
-    else
-      if value ~= M.NONE then
-        args[key] = value
+M.parse = function(args, include_defaults, strict_checking)
+  local result = {}
+  if include_defaults then
+    for _, key in ipairs(list_args) do
+      local def = arguments[key]
+      if def.values[1] ~= M.NO_DEFAULT then
+        result[key] = def.values[1]
       end
     end
   end
 
   -- read args from user
-  for _, arg in ipairs({...}) do
-    if type(arg) == "string" then
-      local eq = arg:find("=")
-      if eq then
-        local key = arg:sub(1, eq - 1)
-        local value = arg:sub(eq + 1)
-        if not valid_args[key] then
-          error("Invalid argument: " .. arg)
-        end
-        if key == "dir" or key == "reveal_file" then
-          value = vim.fn.expand(value)
-        end
-        args[key] = value
-      else
-        local value = arg
-        local key = reverse_lookup[value]
-        if not key then
-          -- maybe it's a path
-          value = vim.fn.expand(value)
-          local stat = vim.loop.fs_stat(value)
-          if stat then
-            if stat.type == "directory" then
-              key = "dir"
-            elseif stat.type == "file" then
-              key = "reveal_file"
-            end
-          else
-            error("Invalid argument: " .. arg)
-          end
-        end
-        args[key] = value
-      end
+  for _, arg in ipairs(args) do
+    local success, err = pcall(parse_arg, result, arg)
+    if strict_checking and not success then
+      error(err)
     end
   end
 
-  return args
+  return result
 end
 
 return M

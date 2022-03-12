@@ -339,7 +339,9 @@ M.collapse_all_nodes = function(tree)
   end
   -- but make sure the root is expanded
   local root = tree:get_nodes()[1]
-  root:expand()
+  if root then
+    root:expand()
+  end
 end
 
 ---Functions to save and restore the focused node.

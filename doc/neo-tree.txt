@@ -42,10 +42,10 @@ COMMANDS                                                     *neo-tree-commands*
 Neo-tree does not define any default keybindings for nvim. The suggested
 keybindings are:
 
-    nnoremap / :NeoTreeRevealInSplitToggle<cr>                          
-    nnoremap | :NeoTreeRevealToggle<cr>                          
-    nnoremap <leader>b :NeoTreeFocus buffers<cr>
-    nnoremap <leader>s :NeoTreeFocus git_status<cr>
+    nnoremap / :NeoTree reveal split<cr>                          
+    nnoremap | :NeoTree reveal left<cr>
+    nnoremap <leader>b :NeoTree buffers<cr>
+    nnoremap <leader>s :NeoTree git_status<cr>
 
 NOTE: All of the below commands also have a Toggle variant, which will close
 the window if it is already open. i.e. NeoTreeFocusToggle, NeoTreeShowToggle,

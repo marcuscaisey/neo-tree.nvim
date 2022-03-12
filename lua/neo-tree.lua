@@ -466,17 +466,9 @@ M.show = function(source_name, toggle_if_open)
       return
     end
   end
-  if close_others == nil then
-    close_others = true
-  end
-  if close_others then
-    M.close_all_except(source_name)
-  end
-  if do_not_focus then
-    manager.show(source_name)
-  else
-    manager.focus(source_name)
-  end
+
+  M.close_all_except(source_name)
+  manager.show(source_name)
 end
 
 M.set_log_level = function(level)
